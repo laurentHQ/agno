@@ -104,6 +104,7 @@ module = [
   "boto3.*",
   "botocore.*",
   "docker.*",
+  "tomli.*",
   "tomllib.*",
   "yaml.*",
 ]

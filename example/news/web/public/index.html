@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance News AgentOS - Web UI</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>💰 Finance News AgentOS</h1>
+            <p>Web UI with Markdown Rendering</p>
+            <div class="status-indicator">
+                <span id="connection-status" class="status-unknown">⚪ Checking connection...</span>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-tabs">
+            <button class="tab-button active" data-tab="market-overview">📊 Market Overview</button>
+            <button class="tab-button" data-tab="quick-analysis">🔍 Quick Analysis</button>
+            <button class="tab-button" data-tab="custom-query">💬 Custom Query</button>
+            <button class="tab-button" data-tab="sessions">📝 Sessions</button>
+        </nav>
+
+        <!-- Market Overview Tab -->
+        <div id="market-overview" class="tab-content active">
+            <div class="section">
+                <div class="section-header">
+                    <h2>📈 Market Overview</h2>
+                    <button id="refresh-market" class="btn btn-primary">🔄 Refresh</button>
+                </div>
+                <div id="market-loading" class="loading hidden">
+                    <div class="spinner"></div>
+                    <span>Fetching market overview...</span>
+                </div>
+                <div id="market-result" class="result-container"></div>
+            </div>
+        </div>
+
+        <!-- Quick Analysis Tab -->
+        <div id="quick-analysis" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2>🔍 Quick Stock Analysis</h2>
+                    <div class="input-group">
+                        <input type="text" id="symbol-input" placeholder="Enter stock symbol (e.g., AAPL)" value="AAPL">
+                        <button id="analyze-stock" class="btn btn-primary">Analyze</button>
+                    </div>
+                </div>
+                <div id="analysis-loading" class="loading hidden">
+                    <div class="spinner"></div>
+                    <span>Analyzing <span id="analyzing-symbol"></span>...</span>
+                </div>
+                <div id="analysis-result" class="result-container"></div>
+            </div>
+        </div>
+
+        <!-- Custom Query Tab -->
+        <div id="custom-query" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2>💬 Custom Financial Query</h2>
+                </div>
+                <div class="query-form">
+                    <textarea id="custom-message" rows="4" placeholder="Ask any financial question...
+Examples:
+- What are the top performing sectors today?
+- Compare Tesla vs Ford stock performance
+- Explain the current crypto market trends"></textarea>
+                    <div class="form-actions">
+                        <button id="send-query" class="btn btn-primary">Send Query</button>
+                        <button id="clear-query" class="btn btn-secondary">Clear</button>
+                    </div>
+                </div>
+                <div id="query-loading" class="loading hidden">
+                    <div class="spinner"></div>
+                    <span>Processing your query...</span>
+                </div>
+                <div id="query-result" class="result-container"></div>
+            </div>
+        </div>
+
+        <!-- Sessions Tab -->
+        <div id="sessions" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2>📝 Chat Sessions</h2>
+                    <button id="refresh-sessions" class="btn btn-primary">🔄 Refresh</button>
+                </div>
+                <div id="sessions-loading" class="loading hidden">
+                    <div class="spinner"></div>
+                    <span>Loading sessions...</span>
+                </div>
+                <div id="sessions-result" class="result-container"></div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>
+                Powered by <strong>Finance News AgentOS</strong> |
+                Backend: <span id="backend-url">http://localhost:8080</span> |
+                Multi-model AI Support
+            </p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+# AgentOS Requirements for Finance News Agent
+# Core agno framework with web interface
+agno[web]
+
+# Web server
+uvicorn[standard]
+fastapi
+
+# Database support (optional)
+psycopg2-binary
+
+# Caching support (optional)
+redis>=4.0.0
+
+# Development tools
+python-dotenv
+pyyaml
+
+# Code quality tools
+ruff>=0.1.0
+mypy>=1.0.0

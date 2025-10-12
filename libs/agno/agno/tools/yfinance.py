@@ -42,14 +42,47 @@ class YFinanceTools(Toolkit):
             symbol (str): The stock symbol.
 
         Returns:
-            str: The current stock price or error message.
+            str: The current stock price with delta from previous day, formatted with color indicators.
         """
         try:
             log_debug(f"Fetching current price for {symbol}")
             stock = yf.Ticker(symbol)
-            # Use "regularMarketPrice" for regular market hours, or "currentPrice" for pre/post market
-            current_price = stock.info.get("regularMarketPrice", stock.info.get("currentPrice"))
-            return f"{current_price:.4f}" if current_price else f"Could not fetch current price for {symbol}"
+            info = stock.info
+
+            # Get current and previous close prices
+            current_price = info.get("regularMarketPrice", info.get("currentPrice"))
+            previous_close = info.get("previousClose")
+
+            if not current_price:
+                return f"Could not fetch current price for {symbol}"
+
+            # Calculate delta if previous close is available
+            if previous_close and previous_close > 0:
+                delta = current_price - previous_close
+                delta_pct = (delta / previous_close) * 100
+
+                # Color indicator based on movement
+                if delta > 0:
+                    direction = "📈"
+                    color = "🟢"
+                    sign = "+"
+                elif delta < 0:
+                    direction = "📉"
+                    color = "🔴"
+                    sign = ""
+                else:
+                    direction = "➡️"
+                    color = "⚪"
+                    sign = ""
+
+                return (
+                    f"{symbol.upper()}: {color} **${current_price:.2f}** "
+                    f"{direction} {sign}${abs(delta):.2f} ({sign}{delta_pct:.2f}%) "
+                    f"from previous close of ${previous_close:.2f}"
+                )
+            else:
+                return f"{symbol.upper()}: **${current_price:.2f}**"
+
         except Exception as e:
             return f"Error fetching current price for {symbol}: {e}"
 
@@ -60,7 +93,7 @@ class YFinanceTools(Toolkit):
             symbol (str): The stock symbol.
 
         Returns:
-            str: JSON containing company profile and overview.
+            str: JSON containing company profile and overview with enhanced price display.
         """
         try:
             company_info_full = yf.Ticker(symbol).info
@@ -69,10 +102,28 @@ class YFinanceTools(Toolkit):
 
             log_debug(f"Fetching company info for {symbol}")
 
+            # Get price data for delta calculation
+            current_price = company_info_full.get('regularMarketPrice', company_info_full.get('currentPrice'))
+            previous_close = company_info_full.get('previousClose')
+
+            # Format price with delta
+            price_display = f"{current_price} {company_info_full.get('currency', 'USD')}"
+            if current_price and previous_close and previous_close > 0:
+                delta = current_price - previous_close
+                delta_pct = (delta / previous_close) * 100
+                direction = "📈" if delta >= 0 else "📉"
+                color = "🟢" if delta >= 0 else "🔴"
+                sign = "+" if delta >= 0 else ""
+                price_display = (
+                    f"{color} {current_price:.2f} {company_info_full.get('currency', 'USD')} "
+                    f"{direction} {sign}{delta:.2f} ({sign}{delta_pct:.2f}%)"
+                )
+
             company_info_cleaned = {
                 "Name": company_info_full.get("shortName"),
                 "Symbol": company_info_full.get("symbol"),
-                "Current Stock Price": f"{company_info_full.get('regularMarketPrice', company_info_full.get('currentPrice'))} {company_info_full.get('currency', 'USD')}",
+                "Current Stock Price": price_display,
+                "Previous Close": f"{previous_close:.2f} {company_info_full.get('currency', 'USD')}" if previous_close else "N/A",
                 "Market Cap": f"{company_info_full.get('marketCap', company_info_full.get('enterpriseValue'))} {company_info_full.get('currency', 'USD')}",
                 "Sector": company_info_full.get("sector"),
                 "Industry": company_info_full.get("industry"),
@@ -137,6 +188,7 @@ class YFinanceTools(Toolkit):
                 Keys:
                     - 'symbol': The stock symbol.
                     - 'company_name': The long name of the company.
+                    - 'current_price': Current price with delta from previous close.
                     - 'sector': The sector to which the company belongs.
                     - 'industry': The industry to which the company belongs.
                     - 'market_cap': The market capitalization of the company.
@@ -152,9 +204,28 @@ class YFinanceTools(Toolkit):
             log_debug(f"Fetching fundamentals for {symbol}")
             stock = yf.Ticker(symbol)
             info = stock.info
+
+            # Get price data for delta calculation
+            current_price = info.get('regularMarketPrice', info.get('currentPrice'))
+            previous_close = info.get('previousClose')
+
+            # Format price with delta
+            price_display = f"{current_price}" if current_price else "N/A"
+            if current_price and previous_close and previous_close > 0:
+                delta = current_price - previous_close
+                delta_pct = (delta / previous_close) * 100
+                direction = "📈" if delta >= 0 else "📉"
+                color = "🟢" if delta >= 0 else "🔴"
+                sign = "+" if delta >= 0 else ""
+                price_display = (
+                    f"{color} ${current_price:.2f} {direction} {sign}${abs(delta):.2f} ({sign}{delta_pct:.2f}%)"
+                )
+
             fundamentals = {
                 "symbol": symbol,
                 "company_name": info.get("longName", ""),
+                "current_price": price_display,
+                "previous_close": f"${previous_close:.2f}" if previous_close else "N/A",
                 "sector": info.get("sector", ""),
                 "industry": info.get("industry", ""),
                 "market_cap": info.get("marketCap", "N/A"),

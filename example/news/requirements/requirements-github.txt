@@ -1,0 +1,11 @@
+# GitHub Trending News Agent Requirements
+
+# Base requirements
+-r requirements-news.txt
+
+# Additional dependencies for GitHub integration
+requests>=2.31.0
+PyGithub>=1.59.0  # Optional: More advanced GitHub API features
+
+# Optional: For enhanced GitHub API rate limits
+# Set GITHUB_TOKEN environment variable

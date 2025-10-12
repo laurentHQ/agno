@@ -1,0 +1,65 @@
+agent:
+  description: Specialized Financial News and Market Analysis Agent with real-time
+    data capabilities
+  interactive: false
+  markdown: true
+  name: finance-news-agent
+  debug_mode: false
+database:
+  postgresql:
+    schema: finance_agent
+  sqlite:
+    db_file: finance_agent.db
+    enable_history: true
+  type: sqlite
+features:
+  enable_custom_endpoints: true
+  enable_history: true
+  enable_redoc: true
+  enable_sessions: true
+  enable_swagger_ui: true
+logging:
+  file: null
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  level: INFO
+model:
+  claude:
+    display_name: Claude 4.5 Sonnet (Anthropic)
+    max_tokens: 4000
+    model_id: claude-sonnet-4-5
+    temperature: 0.1
+  gemini:
+    display_name: Gemini 2.5 Flash (Google)
+    max_tokens: 4000
+    model_id: gemini-2.5-flash
+    temperature: 0.1
+  openai:
+    display_name: GPT-5 Mini (OpenAI)
+    max_tokens: 4000
+    model_id: gpt-5-mini
+    temperature: 0.1
+  primary: openai
+rate_limiting:
+  burst_size: 10
+  enabled: false
+  requests_per_minute: 60
+server:
+  description: Interactive web interface for Financial News and Market Analysis
+  host: 0.0.0.0
+  log_level: info
+  port: 8080
+  reload: false
+  title: Finance News AgentOS
+tools:
+  duckduckgo:
+    enabled: true
+    max_results: 10
+  reddit:
+    enabled: true
+    max_posts: 5
+  tavily:
+    enabled: true
+    format: markdown
+    include_answer: true
+    max_tokens: 6000
+    search_depth: advanced

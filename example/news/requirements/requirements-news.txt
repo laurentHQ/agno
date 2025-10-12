@@ -1,0 +1,39 @@
+# Core Agno framework
+agno
+
+# Required for news agents
+python-dotenv
+
+# Optional dependencies for enhanced features
+# Reddit integration
+praw
+
+# Web search engines
+tavily-python
+ddgs
+googlesearch-python
+brave-search
+
+# Web scraping tools
+newspaper3k
+crawl4ai
+firecrawl-py
+
+# Academic research
+arxiv
+
+# Financial data
+yfinance
+
+# Additional useful packages
+requests
+beautifulsoup4
+feedparser
+newspaper3k
+lxml_html_clean
+pycountry
+pypdf
+
+# llm  frameworks
+openai
+google-genai
