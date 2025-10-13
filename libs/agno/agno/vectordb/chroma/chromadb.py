@@ -34,10 +34,11 @@ class ChromaDb(VectorDb):
         reranker: Optional[Reranker] = None,
         **kwargs,
     ):
+        # Initialize base class with name and description
+        super().__init__(name=name, description=description)
+        
         # Collection attributes
         self.collection_name: str = collection
-        self.name: Optional[str] = name
-        self.description: Optional[str] = description
         # Embedder for embedding the document contents
         if embedder is None:
             from agno.knowledge.embedder.openai import OpenAIEmbedder

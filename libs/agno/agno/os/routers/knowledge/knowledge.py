@@ -1,7 +1,7 @@
 import json
 import logging
 import math
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Path, Query, UploadFile
 
@@ -20,7 +20,7 @@ from agno.os.routers.knowledge.schemas import (
     ContentUpdateSchema,
     DocumentSearchResult,
     ReaderSchema,
-    SearchResponseSchema,
+    VectorSearchResponseSchema,
     VectorDbSchema,
 )
 from agno.os.schema import (
@@ -517,12 +517,12 @@ def attach_routes(router: APIRouter, knowledge_instances: List[Knowledge]) -> AP
         return ContentStatusResponse(status=status, status_message=status_message or "")
 
     @router.get(
-        "/knowledge/search",
+        "/knowledge/vectors",
         status_code=200,
-        operation_id="search_knowledge",
-        summary="Search Knowledge",
-        description="Search the knowledge base for relevant content.",
-        response_model=SearchResponseSchema,
+        operation_id="search_vectors",
+        summary="Search Knowledge Base Vectors",
+        description="Search the knowledge base for relevant vectors using query, filters and search type.",
+        response_model=VectorSearchResponseSchema,
         responses={
             200: {
                 "description": "Search results retrieved successfully",
@@ -543,6 +543,11 @@ def attach_routes(router: APIRouter, knowledge_instances: List[Knowledge]) -> AP
                             ],
                             "total_results": 7,
                             "search_time_ms": 45.2,
+                            "query": "Jordan Mitchell skills",
+                            "max_results": 7,
+                            "filters": {"page": 1, "document_type": "cv"},
+                            "search_type": "hybrid",
+
                         }
                     }
                 },
@@ -551,26 +556,45 @@ def attach_routes(router: APIRouter, knowledge_instances: List[Knowledge]) -> AP
             404: {"description": "No documents found"},
         },
     )
-    def search_knowledge(
+    def search_vectors(
         query: str,
-        db_id: Optional[str] = Query(default=None, description="The ID of the database to use"),
+        db_id: Optional[str] = Query(default=None, description="The Content DB ID"),
+        vector_db_id: Optional[str] = Query(default=None, description="The Vector DB ID"),
         search_type: Optional[str] = Query(default=None, description="The type of search to perform"),
-    ) -> SearchResponseSchema:
+        max_results: Optional[int] = Query(default=None, description="The maximum number of results to return"),
+        filters: Optional[str] = Query(default=None, description="JSON string of filters to apply to the search (e.g., '{\"key\": \"value\"}')"),
+    ) -> VectorSearchResponseSchema:
         import time
+        import json
 
         start_time = time.time()
+        
+        # Parse filters from JSON string if provided
+        parsed_filters: Optional[Dict[str, Any]] = None
+        if filters:
+            try:
+                parsed_filters = json.loads(filters)
+            except json.JSONDecodeError:
+                from fastapi import HTTPException
+                raise HTTPException(status_code=400, detail="Invalid JSON format for filters")
+        
         knowledge = get_knowledge_instance_by_db_id(knowledge_instances, db_id)
-        results = knowledge.search(query=query, search_type=search_type)
+        results = knowledge.search(query=query, max_results=max_results, filters=parsed_filters, search_type=search_type)
         search_time_ms = (time.time() - start_time) * 1000
 
         # Convert Document objects to serializable format
         document_results = [DocumentSearchResult.from_document(doc) for doc in results]
-
-        return SearchResponseSchema(
+        if search_type is None:
+            search_type = "default"
+        return VectorSearchResponseSchema(
             query=query,
+            vector_db_id=vector_db_id,
             documents=document_results,
             total_results=len(document_results),
             search_time_ms=round(search_time_ms, 2),
+            search_type=search_type,
+            max_results=max_results,
+            filters=parsed_filters,
         )
 
     @router.get(

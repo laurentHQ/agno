@@ -1,13 +1,26 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
+import uuid
 
 
 class VectorDb(ABC):
     """Base class for Vector Databases"""
 
     from agno.knowledge.document import Document
-    name: Optional[str] = None
-    description: Optional[str] = None
+
+    def __init__(self, *, id: Optional[str] = None, name: Optional[str] = None, description: Optional[str] = None):
+        """Initialize base VectorDb.
+        
+        Args:
+            id: Optional custom ID. If not provided, an id will be generated.
+            name: Optional name for the vector database.
+            description: Optional description for the vector database.
+        """
+        if name is None:
+            name = self.__class__.__name__
+        self.id = id or generate_id(name)
+        self.name = name
+        self.description = description
 
     @abstractmethod
     def create(self) -> None:

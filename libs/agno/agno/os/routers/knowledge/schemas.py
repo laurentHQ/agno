@@ -147,15 +147,23 @@ class DocumentSearchResult(BaseModel):
         )
 
 
-class SearchResponseSchema(BaseModel):
+class VectorSearchResponseSchema(BaseModel):
     """Schema for search results response."""
 
     query: str
+    max_results: Optional[int] = None
+    filters: Optional[Dict[str, Any]] = None
+    search_type: Optional[str] = None
     documents: List[DocumentSearchResult]
     total_results: int
     search_time_ms: Optional[float] = None
+    vector_db_id: Optional[str] = None
 
+class ContentSearchResponseSchema(BaseModel):
+    """Schema for content search results response."""
 
+    query: str
+    
 class ConfigResponseSchema(BaseModel):
     readers: Optional[Dict[str, ReaderSchema]] = None
     readersForType: Optional[Dict[str, List[str]]] = None

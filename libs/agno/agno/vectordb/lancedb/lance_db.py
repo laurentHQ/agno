@@ -63,9 +63,8 @@ class LanceDb(VectorDb):
         on_bad_vectors: Optional[str] = None,  # One of "error", "drop", "fill", "null".
         fill_value: Optional[float] = None,  # Only used if on_bad_vectors is "fill"
     ):
-        # Database metadata
-        self.name: Optional[str] = name
-        self.description: Optional[str] = description
+        # Initialize base class with name and description
+        super().__init__(name=name, description=description)
 
         # Embedder for embedding the document contents
         if embedder is None:
