@@ -64,8 +64,7 @@ class ModelRegistry:
             display_name="Claude 4.5 Sonnet (Anthropic)",
             model_id="claude-sonnet-4-5",
             env_key="ANTHROPIC_API_KEY",
-            description="Default, most stable and reliable",
-            is_default=True,
+            description="Alternative, most stable and reliable",
         ),
         ModelType.OPENAI: ModelConfig(
             name="openai",
@@ -73,7 +72,8 @@ class ModelRegistry:
             model_id="gpt-5-mini",
             env_key="OPENAI_API_KEY",
             package_required="openai",
-            description="Alternative, requires OpenAI API key",
+            description="Default, requires OpenAI API key",
+            is_default=True,
         ),
         ModelType.GEMINI: ModelConfig(
             name="gemini",

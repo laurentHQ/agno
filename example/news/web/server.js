@@ -4,10 +4,14 @@ const axios = require('axios');
 const { marked } = require('marked');
 const hljs = require('highlight.js');
 const cors = require('cors');
+const multer = require('multer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const AGENTOS_URL = process.env.AGENTOS_URL || 'http://localhost:8080';
+
+// Configure multer for handling multipart/form-data
+const upload = multer();
 
 // Configure marked for better markdown rendering
 marked.setOptions({
@@ -89,7 +93,7 @@ app.get('/api/finance/market-overview', async (req, res) => {
   }
 });
 
-app.post('/api/agents/:agentName/runs', async (req, res) => {
+app.post('/api/agents/:agentName/runs', upload.none(), async (req, res) => {
   try {
     const { agentName } = req.params;
     const { message } = req.body;

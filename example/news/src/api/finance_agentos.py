@@ -58,14 +58,31 @@ def safe_timestamp(timestamp_value):
 def create_finance_agentos():
     """Create AgentOS with Finance News Agent"""
 
-    # Create the finance agent with default model
-    finance_agent = create_finance_news_agent(model_choice="claude", interactive=False)
+    # Get model choice from environment or use default (openai)
+    model_choice = os.getenv("FINANCE_AGENT_MODEL", "openai")
+
+    # Get debug mode from environment
+    debug_mode = os.getenv("DEBUG_MODE", "false").lower() in ("true", "1", "yes")
+
+    # Print model selection
+    print(f"🤖 Initializing Finance Agent with model: {model_choice.upper()}")
+    if debug_mode:
+        print(f"🐛 Debug mode: ENABLED")
+
+    # Create the finance agent with configured model
+    finance_agent = create_finance_news_agent(model_choice=model_choice, interactive=False)
 
     # Set agent name and session handling
     finance_agent.name = "finance-news-agent"
     finance_agent.description = (
         "Specialized Financial News and Market Analysis Agent with real-time data capabilities"
     )
+
+    # Enable debug mode on the agent
+    finance_agent.debug_mode = debug_mode
+    if debug_mode:
+        finance_agent.show_tool_calls = True
+        print(f"🐛 Agent debug settings: debug_mode={debug_mode}, show_tool_calls=True")
 
     # Configure database (SQLite by default, PostgreSQL optional)
     if os.getenv("DATABASE_URL"):
@@ -260,7 +277,7 @@ def create_finance_agentos():
             )
 
             response = {
-                "overview": str(result.content),
+                "analysis": str(result.content),
                 "timestamp": safe_timestamp(result.created_at),
                 "cached": False,
             }
@@ -323,18 +340,39 @@ def create_finance_agentos():
 async def lifespan(app):
     """Custom lifespan manager for startup/shutdown"""
     print("🚀 Finance News AgentOS starting up...")
-    print("💰 Finance agent initialized with multi-model support")
+
+    # Get configured model
+    configured_model = os.getenv("FINANCE_AGENT_MODEL", "openai")
+    print(f"💰 Finance agent initialized with: {configured_model.upper()} (default)")
 
     # Check API keys
-    api_keys = []
+    available_models = []
     if os.getenv("ANTHROPIC_API_KEY"):
-        api_keys.append("Claude")
-    if os.getenv("OPENAI_API_KEY"):
-        api_keys.append("OpenAI")
-    if os.getenv("TAVILY_API_KEY"):
-        api_keys.append("Tavily")
+        available_models.append("Claude ✅")
+    else:
+        available_models.append("Claude ❌")
 
-    print(f"🔑 Available AI models: {', '.join(api_keys) if api_keys else 'Claude (default)'}")
+    if os.getenv("OPENAI_API_KEY"):
+        available_models.append("OpenAI ✅")
+    else:
+        available_models.append("OpenAI ❌")
+
+    if os.getenv("GOOGLE_API_KEY"):
+        available_models.append("Gemini ✅")
+    else:
+        available_models.append("Gemini ❌")
+
+    print(f"🔑 Model availability: {' | '.join(available_models)}")
+
+    # Check additional services
+    services = []
+    if os.getenv("TAVILY_API_KEY"):
+        services.append("Tavily ✅")
+    if os.getenv("REDDIT_CLIENT_ID"):
+        services.append("Reddit ✅")
+
+    if services:
+        print(f"🛠️  Enhanced services: {' | '.join(services)}")
 
     yield
 
@@ -344,11 +382,28 @@ async def lifespan(app):
 def main():
     """Main function to run the AgentOS"""
     print("🏦 Starting Finance News AgentOS...")
+    print()
 
-    # Check required environment variables
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        print("⚠️  ANTHROPIC_API_KEY not found. Please set it in your .env file.")
-        print("💡 The agent will not work without an API key.")
+    # Get configured model
+    configured_model = os.getenv("FINANCE_AGENT_MODEL", "openai")
+
+    # Check required API keys based on configured model
+    model_key_map = {
+        "openai": ("OPENAI_API_KEY", "OpenAI"),
+        "claude": ("ANTHROPIC_API_KEY", "Claude"),
+        "gemini": ("GOOGLE_API_KEY", "Gemini"),
+    }
+
+    required_key, model_name = model_key_map.get(
+        configured_model.lower(), ("OPENAI_API_KEY", "OpenAI")
+    )
+
+    if not os.getenv(required_key):
+        print(f"⚠️  {required_key} not found. Please set it in your .env file.")
+        print(f"💡 The agent is configured to use {model_name} but the API key is missing.")
+        print(f"💡 You can either:")
+        print(f"   1. Set {required_key} in your .env file")
+        print(f"   2. Change FINANCE_AGENT_MODEL to use a different model")
         return
 
     # Create AgentOS
@@ -359,9 +414,14 @@ def main():
     app.router.lifespan_context = lifespan
 
     # Print startup information
+    debug_mode = os.getenv("DEBUG_MODE", "false").lower() in ("true", "1", "yes")
+
     print("\n" + "=" * 60)
     print("🏦 Finance News AgentOS Ready!")
     print("=" * 60)
+    print(f"🤖 Active Model: {configured_model.upper()}")
+    if debug_mode:
+        print(f"🐛 Debug Mode: ENABLED (showing tool calls and debug info)")
     print("🌐 Web Interface: http://localhost:8080")
     print("📖 API Docs: http://localhost:8080/docs")
     print("🔍 Quick Analysis: http://localhost:8080/finance/quick-analysis?symbol=AAPL")
@@ -376,6 +436,10 @@ def main():
         print(f"💾 Database: SQLite ({db_file})")
         print("💡 Set DATABASE_URL for PostgreSQL or SQLITE_DB_FILE for custom SQLite location")
 
+    print(f"\n💡 To change the model, set FINANCE_AGENT_MODEL={configured_model} in .env")
+    print("   Available options: openai, claude, gemini")
+    if not debug_mode:
+        print("💡 To enable debug mode, set DEBUG_MODE=true in .env or export DEBUG_MODE=true")
     print("\n🚀 Starting server on http://localhost:8080")
 
     # Run the server

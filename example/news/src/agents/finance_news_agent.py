@@ -28,10 +28,15 @@ from agno.tools.yfinance import YFinanceTools  # noqa: E402
 from dotenv import load_dotenv  # noqa: E402
 
 # Local imports - require path setup above
+from market_data_utils import (  # noqa: E402
+    get_crypto_overview_report,
+    get_index_futures_overview,
+    get_market_overview_with_periods,
+    get_sector_performance_report,
+    get_stock_analysis_report,
+)
 from model_selector import AgentBuilder  # noqa: E402
 from report_utils import save_agent_response_to_md  # noqa: E402
-import requests  # noqa: E402
-import yfinance as yf  # noqa: E402
 
 # Load environment variables
 load_dotenv()
@@ -41,14 +46,39 @@ class AdvancedFinanceTools(Toolkit):
     """Enhanced financial toolkit with market data, analysis, and news capabilities"""
 
     def __init__(self):
-        super().__init__()
+        super().__init__(name="advanced_finance_tools", auto_register=False)
 
-    def get_market_overview(self) -> str:
+        # Explicitly register toolkit functions so AgentOS exposes them reliably.
+        self.register(self.get_market_overview)
+        self.register(self.get_stock_analysis)
+        self.register(self.get_crypto_overview)
+        self.register(self.get_sector_performance)
+        self.register(self.get_index_futures_preview)
+
+    def get_market_overview(
+        self,
+        include_daily: bool = True,
+        include_wtd: bool = True,
+        include_mtd: bool = True,
+        include_ytd: bool = True,
+        compact: bool = True,
+        include_futures_preview: bool = True,
+    ) -> str:
         """
-        Get comprehensive market overview including major indices and sectors
+        Get comprehensive market overview including major indices with multiple time periods
+
+        Args:
+            include_daily: Include daily changes (default: True)
+            include_wtd: Include week-to-date changes (default: True)
+            include_mtd: Include month-to-date changes (default: True)
+            include_ytd: Include year-to-date changes (default: True)
+            compact: Output format - False for JSON (default), True for markdown table
+            include_futures_preview: Append index futures table when markets are closed or pre-market
 
         Returns:
-            Formatted market overview with key indices and metrics
+            Market overview in JSON format (compact=False) or markdown table (compact=True)
+            - JSON: Structured data with full details for programmatic access
+            - Markdown table: Compact visual display with emoji indicators (📈📉)
         """
         try:
             # Major indices to track
@@ -70,40 +100,50 @@ class AdvancedFinanceTools(Toolkit):
                 "Crude Oil (WTI)": "CL=F",
             }
 
-            result = f"## Market Overview - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-
-            for name, symbol in indices.items():
-                try:
-                    ticker = yf.Ticker(symbol)
-                    hist = ticker.history(period="2d")
-
-                    if not hist.empty:
-                        current_price = hist["Close"].iloc[-1]
-                        prev_close = hist["Close"].iloc[-2] if len(hist) > 1 else current_price
-                        change = current_price - prev_close
-                        change_pct = (change / prev_close) * 100 if prev_close != 0 else 0
-
-                        # Color indicators based on movement
-                        if change >= 0:
-                            direction = "📈"
-                            color = "🟢"
-                        else:
-                            direction = "📉"
-                            color = "🔴"
-
-                        result += f"### {name} ({symbol})\n"
-                        result += f"{color} {direction} **${current_price:.2f}** "
-                        result += f"({change:+.2f}, {change_pct:+.2f}%)\n\n"
-                    else:
-                        return f"Error: No data available for {name} ({symbol}). Please try again later."
-
-                except Exception as e:
-                    return f"Error fetching data for {name} ({symbol}): {e!s}. Please try again later."
-
-            return result
+            return get_market_overview_with_periods(
+                indices=indices,
+                include_daily=include_daily,
+                include_wtd=include_wtd,
+                include_mtd=include_mtd,
+                include_ytd=include_ytd,
+                compact=compact,
+                include_futures_preview=include_futures_preview,
+            )
 
         except Exception as e:
             return f"Error fetching market overview: {e!s}"
+
+    def get_index_futures_preview(
+        self,
+        include_daily: bool = True,
+        include_wtd: bool = False,
+        include_mtd: bool = False,
+        include_ytd: bool = False,
+        compact: bool = True,
+    ) -> str:
+        """
+        Get pre-market index futures snapshot for gauging the pending cash-session open.
+
+        Args:
+            include_daily: Include daily percentage change (default: True)
+            include_wtd: Include week-to-date change (default: False)
+            include_mtd: Include month-to-date change (default: False)
+            include_ytd: Include year-to-date change (default: False)
+            compact: Output format - False for JSON payload, True for markdown table
+
+        Returns:
+            Index futures overview focused on overnight direction
+        """
+        try:
+            return get_index_futures_overview(
+                include_daily=include_daily,
+                include_wtd=include_wtd,
+                include_mtd=include_mtd,
+                include_ytd=include_ytd,
+                compact=compact,
+            )
+        except Exception as e:
+            return f"Error fetching index futures data: {e!s}"
 
     def get_stock_analysis(self, symbol: str) -> str:
         """
@@ -115,90 +155,7 @@ class AdvancedFinanceTools(Toolkit):
         Returns:
             Comprehensive stock analysis
         """
-        try:
-            ticker = yf.Ticker(symbol.upper())
-            info = ticker.info
-            hist = ticker.history(period="1mo")
-
-            if hist.empty:
-                return f"No data available for symbol: {symbol}"
-
-            # Basic info
-            result = f"## Stock Analysis: {info.get('longName', symbol)} ({symbol.upper()})\n\n"
-
-            # Current price and change
-            current_price = hist["Close"].iloc[-1]
-            prev_close = info.get("previousClose", current_price)
-            change = current_price - prev_close
-            change_pct = (change / prev_close) * 100 if prev_close != 0 else 0
-
-            direction = "📈" if change >= 0 else "📉"
-            result += "### Current Price\n"
-            result += (
-                f"{direction} **${current_price:.2f}** ({change:+.2f}, {change_pct:+.2f}%)\n\n"
-            )
-
-            # Key metrics
-            result += "### Key Metrics\n"
-            result += (
-                f"- **Market Cap**: ${info.get('marketCap', 'N/A'):,}\n"
-                if info.get("marketCap")
-                else ""
-            )
-            result += (
-                f"- **P/E Ratio**: {info.get('trailingPE', 'N/A')}\n"
-                if info.get("trailingPE")
-                else ""
-            )
-            result += (
-                f"- **52 Week High**: ${info.get('fiftyTwoWeekHigh', 'N/A')}\n"
-                if info.get("fiftyTwoWeekHigh")
-                else ""
-            )
-            result += (
-                f"- **52 Week Low**: ${info.get('fiftyTwoWeekLow', 'N/A')}\n"
-                if info.get("fiftyTwoWeekLow")
-                else ""
-            )
-            result += f"- **Volume**: {info.get('volume', 'N/A'):,}\n" if info.get("volume") else ""
-            result += (
-                f"- **Dividend Yield**: {info.get('dividendYield', 'N/A'):.2%}\n"
-                if info.get("dividendYield")
-                else ""
-            )
-
-            # Analyst recommendations
-            if info.get("recommendationKey"):
-                result += f"- **Analyst Rating**: {info.get('recommendationKey', 'N/A').title()}\n"
-
-            # Business summary
-            if info.get("longBusinessSummary"):
-                summary = (
-                    info["longBusinessSummary"][:300] + "..."
-                    if len(info["longBusinessSummary"]) > 300
-                    else info["longBusinessSummary"]
-                )
-                result += f"\n### Business Overview\n{summary}\n"
-
-            # Performance over different periods
-            periods = {"1d": "1 day", "5d": "5 days", "1mo": "1 month", "3mo": "3 months"}
-            result += "\n### Performance\n"
-
-            for period, name in periods.items():
-                try:
-                    period_hist = ticker.history(period=period)
-                    if not period_hist.empty and len(period_hist) > 1:
-                        period_change = (
-                            period_hist["Close"].iloc[-1] / period_hist["Close"].iloc[0] - 1
-                        ) * 100
-                        result += f"- **{name}**: {period_change:+.2f}%\n"
-                except Exception as e:
-                    return f"Error fetching {name} performance for {symbol}: {e!s}. Please try again later."
-
-            return result
-
-        except Exception as e:
-            return f"Error analyzing stock {symbol}: {e!s}"
+        return get_stock_analysis_report(symbol)
 
     def get_crypto_overview(self) -> str:
         """
@@ -207,86 +164,7 @@ class AdvancedFinanceTools(Toolkit):
         Returns:
             Formatted crypto market overview
         """
-        try:
-            # Using CoinGecko API (free, no API key required)
-            url = "https://api.coingecko.com/api/v3/coins/markets"
-            params = {
-                "vs_currency": "usd",
-                "order": "market_cap_desc",
-                "per_page": "10",
-                "page": "1",
-                "sparkline": "False",
-            }
-
-            response = requests.get(url, params=params, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-
-            result = (
-                f"## Cryptocurrency Overview - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-            )
-            result += "### Top 10 Cryptocurrencies by Market Cap\n\n"
-
-            for i, coin in enumerate(data, 1):
-                name = coin["name"]
-                symbol = coin["symbol"].upper()
-                price = coin["current_price"]
-                change_24h = coin["price_change_percentage_24h"] or 0
-                market_cap = coin["market_cap"]
-
-                direction = "📈" if change_24h >= 0 else "📉"
-                result += f"**{i}. {name} ({symbol})**\n"
-                result += f"{direction} ${price:,.4f} ({change_24h:+.2f}%)\n"
-                result += f"Market Cap: ${market_cap:,.0f}\n\n"
-
-            return result
-
-        except Exception as e:
-            return f"Error fetching crypto data: {e!s}"
-
-    def get_economic_calendar(self) -> str:
-        """
-        Get upcoming economic events and indicators
-
-        Returns:
-            Economic calendar information
-        """
-        try:
-            # This is a simplified version - in production you'd use a proper economic calendar API
-            result = f"## Economic Calendar - Week of {datetime.now().strftime('%Y-%m-%d')}\n\n"
-            result += "### Key Economic Events This Week\n\n"
-            result += "⚠️ **Note**: For real-time economic calendar data, please check:\n"
-            result += "- [Economic Calendar - Investing.com](https://www.investing.com/economic-calendar/)\n"
-            result += "- [Fed Economic Data (FRED)](https://fred.stlouisfed.org/)\n"
-            result += "- [Yahoo Finance Economic Calendar](https://finance.yahoo.com/calendar/economic)\n\n"
-
-            # Add some common recurring events
-            result += "### Common Weekly/Monthly Events to Watch:\n"
-            result += "- **Employment Reports**: First Friday of each month\n"
-            result += "- **CPI/Inflation Data**: Mid-month\n"
-            result += "- **Fed Meetings**: 8 times per year\n"
-            result += "- **GDP Reports**: Quarterly\n"
-            result += "- **Weekly Jobless Claims**: Every Thursday\n\n"
-
-            return result
-
-        except Exception as e:
-            return f"Error fetching economic calendar: {e!s}"
-
-    def search_financial_news(self, query: str, symbol: str | None = None) -> str:
-        """
-        Search for specific financial news
-
-        Args:
-            query: News search query
-            symbol: Optional stock symbol to include in search
-
-        Returns:
-            Search query for financial news
-        """
-        if symbol:
-            return f"{query} {symbol} stock market financial news"
-        return f"{query} stock market financial news economy"
+        return get_crypto_overview_report()
 
     def get_sector_performance(self) -> str:
         """
@@ -295,63 +173,15 @@ class AdvancedFinanceTools(Toolkit):
         Returns:
             Sector performance analysis
         """
-        try:
-            # Major sector ETFs
-            sectors = {
-                "Technology": "XLK",
-                "Healthcare": "XLV",
-                "Financials": "XLF",
-                "Energy": "XLE",
-                "Consumer Discretionary": "XLY",
-                "Industrials": "XLI",
-                "Consumer Staples": "XLP",
-                "Materials": "XLB",
-                "Real Estate": "XLRE",
-                "Utilities": "XLU",
-                "Communications": "XLC",
-            }
-
-            result = f"## Sector Performance - {datetime.now().strftime('%Y-%m-%d')}\n\n"
-
-            sector_data = []
-
-            for sector, etf in sectors.items():
-                try:
-                    ticker = yf.Ticker(etf)
-                    hist = ticker.history(period="5d")
-
-                    if not hist.empty and len(hist) > 1:
-                        current_price = hist["Close"].iloc[-1]
-                        prev_price = hist["Close"].iloc[0]
-                        change_pct = (current_price / prev_price - 1) * 100
-
-                        sector_data.append((sector, etf, change_pct))
-                    else:
-                        return f"Error: Insufficient data for {sector} sector ({etf}). Please try again later."
-
-                except Exception as e:
-                    return f"Error fetching {sector} sector performance ({etf}): {e!s}. Please try again later."
-
-            # Sort by performance
-            sector_data.sort(key=lambda x: x[2], reverse=True)
-
-            result += "### 5-Day Sector Performance (Best to Worst)\n\n"
-            for sector, etf, change in sector_data:
-                direction = "📈" if change >= 0 else "📉"
-                result += f"{direction} **{sector}** ({etf}): {change:+.2f}%\n"
-
-            return result
-
-        except Exception as e:
-            return f"Error fetching sector performance: {e!s}"
+        return get_sector_performance_report()
 
 
-def create_finance_news_agent(model_choice="claude", interactive=False):
+def create_finance_news_agent(model_choice="openai", interactive=False):
     """
     Create a specialized finance news agent with comprehensive market coverage
 
     Args:
-        model_choice: AI model to use ("claude", "openai", "gemini") or "interactive" for selection
+        model_choice: AI model to use ("openai", "claude", "gemini") or "interactive" for selection
         interactive: If True, show interactive model selection
 
     Returns:
@@ -398,8 +228,8 @@ def create_finance_news_agent(model_choice="claude", interactive=False):
     3. **Financial News**: Latest financial news from multiple sources including DuckDuckGo and Tavily
     4. **Stock Research**: Detailed company analysis with fundamentals and technical data
     5. **Cryptocurrency**: Crypto market overview and trending digital assets
-    6. **Economic Calendar**: Key economic events and indicators
-    7. **Sector Analysis**: Performance across different market sectors
+    6. **Sector Analysis**: Performance across different market sectors
+    7. **Index Futures Preview**: Overnight sentiment for S&P 500, Dow, Nasdaq 100, and Russell 2000 futures
 
     **When responding to financial queries:**
     1. Always provide current market data when relevant
@@ -416,7 +246,36 @@ def create_finance_news_agent(model_choice="claude", interactive=False):
     4. **Timeframes**: Specify whether data is real-time, delayed, or historical
     5. **Risk Disclosure**: Include appropriate risk warnings for investment information
     6. **Trends**: Identify and explain current market trends and patterns
-    7. **FORMAT**: ALWAYS respond in proper markdown format with headers (#, ##, ###), bullet points (-), and **bold** text for emphasis
+    7. **Futures Context**: Mention index futures direction before the open and connect it to likely cash-session moves
+    8. **FORMAT**: ALWAYS respond in proper markdown format with headers (#, ##, ###), bullet points (-), and **bold** text for emphasis
+
+    **IMPORTANT: Tool Output Formatting:**
+    - The get_market_overview() tool supports TWO OUTPUT FORMATS:
+
+      1. **JSON Format** (compact=False):
+         * Structured JSON data with full details
+         * Best for programmatic access and data processing
+         * Parse the JSON and present key insights to users
+         * Example: For quick updates, extract and display just the key changes
+
+      2. **Markdown Table Format** (compact=True, default):
+         * Clean, visual table with emoji indicators (📈📉)
+         * Best for human-readable reports and summaries
+         * Present the table as-is, then add your analysis below
+         * Includes market status indicators (🔔 OPEN, 🔕 CLOSED, 🌅 PRE_MARKET, 🌙 AFTER_HOURS)
+
+    - Tool parameters to customize output:
+      * include_daily, include_wtd, include_mtd, include_ytd (bool) - control which periods to show
+      * compact (bool) - False for JSON, True for markdown table (default)
+
+    - When to use each format:
+      * Use compact=True for visual market summaries and reports
+      * Use compact=False (JSON) when you need to extract specific data or perform calculations
+
+    - After presenting the tool output, ADD YOUR ANALYSIS:
+      * Explain trends and provide context
+      * Identify key insights and market drivers
+      * Highlight notable movements and patterns
 
     **For stock analysis:**
     - Include company fundamentals (P/E, market cap, dividend yield)
@@ -426,10 +285,23 @@ def create_finance_news_agent(model_choice="claude", interactive=False):
     - Sector and peer comparisons
 
     **For market overview:**
-    - Major indices performance (S&P 500, Dow, NASDAQ)
+    The get_market_overview() tool provides data on:
+    - Market status (OPEN/CLOSED/PRE_MARKET/AFTER_HOURS) with timestamp
+    - US indices (S&P 500, Dow Jones, NASDAQ, Russell 2000)
+    - Market volatility indicator (VIX)
+    - Global indices (Hang Seng, EURO STOXX 50)
+    - Currency markets (EUR/USD, US Dollar Index)
+    - Commodities (Gold, Crude Oil WTI)
+    - Multi-period changes (Daily, WTD, MTD, YTD) with directional indicators
+    - Automatic index futures preview (S&P 500, Dow, Nasdaq 100, Russell 2000) when the market is CLOSED or in PRE_MARKET status
+
+    After presenting the tool output, provide analysis on:
+    - Market trends and patterns across different periods
     - Sector rotation and leadership
-    - VIX and market sentiment indicators
-    - Economic events driving markets
+    - Risk sentiment (VIX levels, safe haven flows)
+    - Index futures direction and how it may influence the opening session or after-hours price action
+    - Economic events and news driving market movements
+    - Key support/resistance levels being tested
 
     **CRITICAL: Always format your responses using proper markdown:**
     - Use # for main headers, ## for sub-headers
@@ -477,7 +349,6 @@ def main():
     print("📊 Market Overview - Get real-time market indices and performance")
     print("📈 Stock Analysis - Detailed company analysis with fundamentals")
     print("🪙 Crypto Markets - Cryptocurrency overview and trends")
-    print("📅 Economic Calendar - Upcoming economic events and indicators")
     print("🏭 Sector Performance - Industry sector analysis and rotation")
     print("📰 Financial News - Latest market news and analysis")
 

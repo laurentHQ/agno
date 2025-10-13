@@ -1,10 +1,10 @@
 agent:
+  debug_mode: false
   description: Specialized Financial News and Market Analysis Agent with real-time
     data capabilities
   interactive: false
   markdown: true
   name: finance-news-agent
-  debug_mode: false
 database:
   postgresql:
     schema: finance_agent
