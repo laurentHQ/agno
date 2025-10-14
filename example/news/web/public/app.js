@@ -267,7 +267,9 @@ class FinanceWebUI {
       const data = await response.json();
 
       if (response.ok) {
-        this.renderSessions('sessions-result', data);
+        // API returns paginated response with data and meta fields
+        const sessions = data.data || [];
+        this.renderSessions('sessions-result', sessions, data.meta);
       } else {
         throw new Error(data.error || 'Failed to fetch sessions');
       }
@@ -278,7 +280,7 @@ class FinanceWebUI {
     }
   }
 
-  renderSessions(containerId, sessions) {
+  renderSessions(containerId, sessions, meta = null) {
     const container = document.getElementById(containerId);
 
     if (!sessions || sessions.length === 0) {
@@ -287,13 +289,25 @@ class FinanceWebUI {
     }
 
     let html = '';
+
+    // Add pagination info if available
+    if (meta) {
+      html += `
+        <div class="metadata" style="margin-bottom: 15px;">
+          <span><strong>Total Sessions:</strong> ${meta.total_count || 0}</span>
+          <span><strong>Page:</strong> ${meta.page || 1} of ${meta.total_pages || 1}</span>
+          <span><strong>Showing:</strong> ${sessions.length} sessions</span>
+        </div>
+      `;
+    }
+
     sessions.forEach((session, index) => {
       html += `
         <div class="session-item">
-          <div class="session-header">Session ${index + 1}</div>
-          <div>ID: ${session.id || 'N/A'}</div>
-          <div>Created: ${this.formatTimestamp(session.created_at)}</div>
-          <div>Updated: ${this.formatTimestamp(session.updated_at)}</div>
+          <div class="session-header">${session.session_name || `Session ${index + 1}`}</div>
+          <div><strong>ID:</strong> ${session.session_id || session.id || 'N/A'}</div>
+          <div><strong>Created:</strong> ${this.formatTimestamp(session.created_at)}</div>
+          <div><strong>Updated:</strong> ${this.formatTimestamp(session.updated_at)}</div>
         </div>
       `;
     });

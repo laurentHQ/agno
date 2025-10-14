@@ -17,13 +17,57 @@ Run: `pip install openai youtube_transcript_api agno` to install the dependencie
 from textwrap import dedent
 
 from agno.agent import Agent
+from agno.db.postgres import PostgresDb
+from agno.db.sqlite import SqliteDb
 from agno.models.openai import OpenAIChat
 from agno.tools.youtube import YouTubeTools
 
+# model name
+MODEL_NAME = "gpt-5-mini"
+
+# Database configuration
+if DATABASE_URL:
+    print("🗄️  Using PostgreSQL database")
+    agent_db = PostgresDb(db_url=DATABASE_URL, table_name="youtube_sessions")
+else:
+    print("🗄️  Using SQLite database")
+    agent_db = SqliteDb(session_table="youtube_sessions", db_file="tmp/agents.db")
+
+# Create the YouTube agent
+
 youtube_agent = Agent(
     name="YouTube Agent",
-    model=OpenAIChat(id="gpt-4o"),
+    model=OpenAIChat(id=MODEL_NAME),
     tools=[YouTubeTools()],
+    db=agent_db,
+    description=dedent("""\
+        You are YouTube Agent, an advanced reasoning agent designed to provide comprehensive video analysis.
+        You are able to analyze YouTube videos and provide a detailed analysis of the video. You can suggest prompt for further analysis.
+        Tutorial Analysis:
+        1. "Break down this Python tutorial with focus on code examples"
+        2. "Create a learning path from this web development course"
+        3. "Extract all practical exercises from this programming guide"
+        4. "Identify key concepts and implementation examples"
+
+        Educational Content:
+        1. "Create a study guide with timestamps for this math lecture"
+        2. "Extract main theories and examples from this science video"
+        3. "Break down this historical documentary into key events"
+        4. "Summarize the main arguments in this academic presentation"
+
+        Tech Reviews:
+        1. "List all product features mentioned with timestamps"
+        2. "Compare pros and cons discussed in this review"
+        3. "Extract technical specifications and benchmarks"
+        4. "Identify key comparison points and conclusions"
+
+        Creative Content:
+        1. "Break down the techniques shown in this art tutorial"
+        2. "Create a timeline of project steps in this DIY video"
+        3. "List all tools and materials mentioned with timestamps"
+        4. "Extract tips and tricks with their demonstrations"
+        
+    """),
     instructions=dedent("""\
         You are an expert YouTube content analyst with a keen eye for detail! 🎓
         Follow these steps for comprehensive video analysis:
@@ -62,6 +106,8 @@ youtube_agent = Agent(
         - Focus on valuable content markers
     """),
     add_datetime_to_context=True,
+    add_history_to_context=True,
+    num_history_runs=3,
     markdown=True,
 )
 
@@ -70,30 +116,3 @@ youtube_agent.print_response(
     "Analyze this video: https://www.youtube.com/watch?v=zjkBMFhNj_g",
     stream=True,
 )
-
-# More example prompts to explore:
-"""
-Tutorial Analysis:
-1. "Break down this Python tutorial with focus on code examples"
-2. "Create a learning path from this web development course"
-3. "Extract all practical exercises from this programming guide"
-4. "Identify key concepts and implementation examples"
-
-Educational Content:
-1. "Create a study guide with timestamps for this math lecture"
-2. "Extract main theories and examples from this science video"
-3. "Break down this historical documentary into key events"
-4. "Summarize the main arguments in this academic presentation"
-
-Tech Reviews:
-1. "List all product features mentioned with timestamps"
-2. "Compare pros and cons discussed in this review"
-3. "Extract technical specifications and benchmarks"
-4. "Identify key comparison points and conclusions"
-
-Creative Content:
-1. "Break down the techniques shown in this art tutorial"
-2. "Create a timeline of project steps in this DIY video"
-3. "List all tools and materials mentioned with timestamps"
-4. "Extract tips and tricks with their demonstrations"
-"""

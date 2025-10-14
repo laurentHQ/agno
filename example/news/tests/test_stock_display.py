@@ -11,9 +11,11 @@ import sys
 current_dir = Path(__file__).parent
 news_root = current_dir.parent
 sys.path.insert(0, str(news_root))
+sys.path.insert(0, str(news_root / "src"))
 
 from dotenv import load_dotenv
 from agno.tools.yfinance import YFinanceTools
+from utils.market_data import get_stock_analysis_report
 
 # Load environment variables
 load_dotenv()
@@ -60,6 +62,21 @@ def test_stock_display():
     result = tools.get_stock_fundamentals("MSFT")
     print(result)
     print()
+
+    print("=" * 80)
+    print()
+
+    # Test stock analysis report with pre-market data
+    print("### Testing get_stock_analysis_report() with pre-market snapshot ###")
+    print()
+    for symbol in ["AAPL", "MSFT"]:
+        print(f"Report for {symbol}:")
+        report = get_stock_analysis_report(symbol)
+        # Print only the top portion to highlight pre-market section
+        head, _, _ = report.partition("### Key Metrics")
+        print(head + "### Key Metrics")
+        print("...")
+        print()
 
     print("=" * 80)
     print("Test completed!")

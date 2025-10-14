@@ -336,7 +336,16 @@ class ModelFactory:
 class AgentBuilder:
     """Builder for creating agents with model selection"""
 
-    def __init__(self, tools: list[Any], instructions: str, markdown: bool = True):
+    def __init__(
+        self,
+        tools: list[Any],
+        instructions: str,
+        markdown: bool = True,
+        enable_session_summaries: bool = False,
+        add_history_to_context: bool = True,
+        num_history_runs: int = 3,
+        read_chat_history: bool = True,
+    ):
         """
         Initialize agent builder
 
@@ -344,10 +353,15 @@ class AgentBuilder:
             tools: List of tools for the agent
             instructions: Agent instructions
             markdown: Whether to enable markdown
+            enable_session_summaries: Whether to enable automatic session summaries
         """
         self.tools = tools
         self.instructions = instructions
         self.markdown = markdown
+        self.enable_session_summaries = enable_session_summaries
+        self.add_history_to_context = add_history_to_context
+        self.num_history_runs = num_history_runs
+        self.read_chat_history = read_chat_history
 
     def build_with_model_selection(
         self, title: str = "Choose AI Model", show_descriptions: bool = True
@@ -367,7 +381,14 @@ class AgentBuilder:
         model = ModelFactory.create_model(model_type)
 
         return Agent(
-            model=model, tools=self.tools, instructions=self.instructions, markdown=self.markdown
+            model=model,
+            tools=self.tools,
+            instructions=self.instructions,
+            markdown=self.markdown,
+            enable_session_summaries=self.enable_session_summaries,
+            add_history_to_context=self.add_history_to_context,
+            num_history_runs=self.num_history_runs,
+            read_chat_history=self.read_chat_history,
         )
 
     def build_with_model_type(self, model_type: ModelType) -> Agent:
@@ -383,7 +404,14 @@ class AgentBuilder:
         model = ModelFactory.create_model(model_type)
 
         return Agent(
-            model=model, tools=self.tools, instructions=self.instructions, markdown=self.markdown
+            model=model,
+            tools=self.tools,
+            instructions=self.instructions,
+            markdown=self.markdown,
+            enable_session_summaries=self.enable_session_summaries,
+            add_history_to_context=self.add_history_to_context,
+            num_history_runs=self.num_history_runs,
+            read_chat_history=self.read_chat_history,
         )
 
     def build_with_model_name(self, model_name: str) -> Agent:
