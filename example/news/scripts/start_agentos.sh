@@ -16,6 +16,16 @@ set -a
 source .env
 set +a
 
+# Activate project virtual environment
+VENV_PATH="/home/laure/disk/agno/.venv"
+if [ -d "$VENV_PATH" ]; then
+    # shellcheck disable=SC1091
+    source "$VENV_PATH/bin/activate"
+else
+    echo "❌ Python virtual environment not found at $VENV_PATH"
+    exit 1
+fi
+
 # Check if at least one API key is available
 if [ -z "$ANTHROPIC_API_KEY" ] && [ -z "$OPENAI_API_KEY" ] && [ -z "$GOOGLE_API_KEY" ]; then
     echo "❌ No AI model API keys found in .env file"
@@ -29,7 +39,7 @@ fi
 # Check if running in Docker
 if [ "$1" = "docker" ]; then
     echo "🐳 Starting with Docker Compose..."
-    docker-compose -f docker/docker-compose.yml up --build
+    docker compose -f docker/docker-compose.yml up --build
 elif [ "$1" = "lite" ]; then
     echo "⚡ Starting lightweight SQLite version..."
     python src/api/finance_agentos_lite.py

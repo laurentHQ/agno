@@ -206,7 +206,7 @@ REDDIT_CLIENT_SECRET=your_reddit_secret
 DATABASE_URL=postgresql://user:pass@localhost:5432/finance_agent
 
 # Or use Docker Compose
-docker-compose up postgres
+docker compose up postgres
 ```
 
 ## 🐳 Docker Deployment
@@ -214,7 +214,7 @@ docker-compose up postgres
 ### Quick Deploy
 ```bash
 # Start with Docker Compose (includes PostgreSQL)
-docker-compose up --build
+docker compose up --build
 
 # Access at http://localhost:8080
 ```
@@ -333,7 +333,7 @@ async def portfolio_analysis(symbols: str):
 
 ### Example Production Setup
 ```bash
-# docker-compose.prod.yml
+# docker compose.prod.yml
 version: '3.8'
 services:
   finance-agentos:

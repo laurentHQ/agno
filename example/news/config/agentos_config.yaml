@@ -7,11 +7,12 @@ agent:
   name: finance-news-agent
 database:
   postgresql:
+    url: postgresql://agentos:agentos_password@localhost:5432/finance_agent
     schema: finance_agent
   sqlite:
     db_file: finance_agent.db
     enable_history: true
-  type: sqlite
+  type: postgresql
 features:
   enable_custom_endpoints: true
   enable_history: true

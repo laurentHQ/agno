@@ -7,13 +7,14 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
-COPY requirements/requirements-agentos.txt .
-RUN pip install --no-cache-dir -r requirements-agentos.txt
+COPY requirements/requirements-agentos.txt /tmp/
+RUN pip install --no-cache-dir -r /tmp/requirements-agentos.txt
 
-# Copy the entire news directory
+# Copy the entire application
 COPY . .
 
 # Create data directories

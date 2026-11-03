@@ -56,7 +56,7 @@ example/news/
 │       └── cache.db                # Cache database
 ├── 📁 docker/                      # Docker configuration
 │   ├── Dockerfile                  # Docker image definition
-│   └── docker-compose.yml          # Multi-service orchestration
+│   └── docker compose.yml          # Multi-service orchestration
 ├── 📁 requirements/                # Python dependencies
 │   ├── requirements-agentos.txt    # AgentOS dependencies
 │   ├── requirements-news.txt       # News agent dependencies
@@ -102,8 +102,8 @@ cd web && npm install && npm start
 # Using script
 ./scripts/start_agentos.sh docker
 
-# Direct docker-compose
-cd docker && docker-compose up --build
+# Direct docker compose
+cd docker && docker compose up --build
 ```
 
 ## 📊 **Benefits of New Structure**

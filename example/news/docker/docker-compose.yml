@@ -1,49 +1,106 @@
-version: '3.8'
-
 services:
+  # Finance News AgentOS - Main Application
   finance-agentos:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+    container_name: finance-agentos
     ports:
-      - "8080:8080"
+      - "8080:8080"  # AgentOS web interface
     environment:
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # AI Model API Keys (at least one required)
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+
+      # Search & News API Keys (required)
       - TAVILY_API_KEY=${TAVILY_API_KEY}
-      - DATABASE_URL=${DATABASE_URL:-}
+      - BRAVE_API_KEY=${BRAVE_API_KEY}
+
+      # Agent Configuration
+      - FINANCE_AGENT_MODEL=${FINANCE_AGENT_MODEL:-openai}
+      - DEBUG_MODE=${DEBUG_MODE:-false}
+      - AGNO_TELEMETRY=false
+
+      # Database Configuration
+      - DATABASE_URL=postgresql://agentos:agentos_password@postgres:5432/finance_agent
+      - SQLITE_DB_FILE=/app/data/databases/finance_agent.db
+
+      # Cache Configuration
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CACHE_DB_PATH=/app/data/databases/cache.db
+      - CACHE_DEFAULT_TTL=1800
+
+      # Server Configuration
+      - HOST=0.0.0.0
+      - PORT=8080
+
     volumes:
       - ../data/reports:/app/data/reports
       - ../data/databases:/app/data/databases
+      - ../logs:/app/logs
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
     networks:
       - agentos-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
+  # PostgreSQL Database
   postgres:
-    image: postgres:15
+    image: postgres:15-alpine
+    container_name: finance-postgres
     environment:
       POSTGRES_DB: finance_agent
       POSTGRES_USER: agentos
       POSTGRES_PASSWORD: agentos_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    restart: unless-stopped
     networks:
       - agentos-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentos -d finance_agent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # Redis Cache
   redis:
     image: redis:7-alpine
+    container_name: finance-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
     ports:
       - "6379:6379"
+    restart: unless-stopped
     networks:
       - agentos-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
+    driver: local
 
 networks:
   agentos-network:
     driver: bridge
+    name: finance-agentos-network

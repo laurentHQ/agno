@@ -6,7 +6,8 @@ agno[web]
 uvicorn[standard]
 fastapi
 
-# Database support (optional)
+# Database support
+sqlalchemy>=2.0.0
 psycopg2-binary
 
 # Caching support (optional)
@@ -19,3 +20,9 @@ pyyaml
 # Code quality tools
 ruff>=0.1.0
 mypy>=1.0.0
+
+# tools support
+ddgs
+praw
+tavily-python
+brave-search

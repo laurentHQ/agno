@@ -29,6 +29,7 @@ class DatabaseConfig:
     type: str = "sqlite"
     sqlite_db_file: str = "finance_agent.db"
     sqlite_enable_history: bool = True
+    postgresql_url: str = ""
     postgresql_schema: str = "finance_agent"
 
 
@@ -118,6 +119,7 @@ class ConfigLoader:
             type=db_data.get("type", "sqlite"),
             sqlite_db_file=db_data.get("sqlite", {}).get("db_file", "finance_agent.db"),
             sqlite_enable_history=db_data.get("sqlite", {}).get("enable_history", True),
+            postgresql_url=db_data.get("postgresql", {}).get("url", ""),
             postgresql_schema=db_data.get("postgresql", {}).get("schema", "finance_agent"),
         )
 
